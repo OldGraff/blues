@@ -28,29 +28,37 @@ static const char *USAGE =
 	"  --hybrid          Enable fuchsia color as in Hybrid crack\n"
 ;
 
-static struct game_t *detect_game(const char *data_path) {
+#if defined(GAME_BB)
+static struct game_t *detect_game(const char *data_path) { 
 	extern struct game_t game_bb;
-	extern struct game_t game_ja;
-	extern struct game_t game_p2;
-	static struct {
-		struct game_t *game;
-		const char *filename;
-		uint16_t size;
-	} games[] = {
-		{ &game_bb, "MAGASIN.BIN",  2560 },
-		{ &game_ja, "JARDIN.EAT",  24876 },
-		{ &game_p2, "MOTIF.SQZ",    9396 },
-		{ 0, 0, 0 }
-	};
-	for (int i = 0; games[i].game; ++i) {
-		FILE *fp = fopen_nocase(data_path, games[i].filename);
-		if (fp) {
-			fclose(fp);
-			return games[i].game;
-		}
+	FILE *fp = fopen_nocase(data_path, "MAGASIN.BIN");
+	if (fp) {
+		fclose(fp);
+		return &game_bb;
 	}
 	return 0;
 }
+#elif defined(GAME_JA)
+static struct game_t *detect_game(const char *data_path) { 
+	extern struct game_t game_ja;
+	FILE *fp = fopen_nocase(data_path, "JARDIN.EAT");
+	if (fp) {
+		fclose(fp);
+		return &game_ja;
+	}
+	return 0;
+}
+#elif defined(GAME_P2)
+static struct game_t *detect_game(const char *data_path) { 
+	extern struct game_t game_p2;
+	FILE *fp = fopen_nocase(data_path, "MOTIF.SQZ");
+	if (fp) {
+		fclose(fp);
+		return &game_p2;
+	}
+	return 0;
+}
+#endif
 
 int main(int argc, char *argv[]) {
 	const char *data_path = DEFAULT_DATA_PATH;
