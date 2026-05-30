@@ -32,9 +32,15 @@ P2_BUILD := $(BUILD)/p2
 # EXECUTABLES
 # -------------------------
 
-BB_EXE := $(BUILD)/bb.exe
-JA_EXE := $(BUILD)/ja.exe
-P2_EXE := $(BUILD)/p2.exe
+ifeq ($(OS),Windows_NT)
+    EXE := .exe
+else
+    EXE :=
+endif
+
+BB_EXE := $(BUILD)/bb$(EXE)
+JA_EXE := $(BUILD)/ja$(EXE)
+P2_EXE := $(BUILD)/p2$(EXE)
 
 # -------------------------
 # FLAGS
@@ -69,7 +75,7 @@ P2_OBJS := \
 
 .PHONY: all bb ja p2 clean package
 
-all: bb ja p2
+all: bb ja p2 package clean
 
 # -------------------------
 # BB
@@ -80,14 +86,13 @@ bb: $(BB_EXE)
 $(BB_EXE): $(BB_OBJS) | $(BUILD)
 	$(CC) -o $@ $^ $(SDL_LIBS) $(MODPLUG_LIBS)
 
-$(BB_BUILD):
-	mkdir -p $@
+$(BB_BUILD)/%.o: %.c
+	mkdir -p $(dir $@)
+	$(CC) $(BB_CFLAGS) -MMD -MP -c -o $@ $<
 
-$(BB_BUILD)/%.o: bb/%.c | $(BB_BUILD)
-	$(CC) $(BB_CFLAGS) -c -o $@ $<
-
-$(BB_BUILD)/%.o: %.c | $(BB_BUILD)
-	$(CC) $(BB_CFLAGS) -c -o $@ $<
+$(BB_BUILD)/%.o: bb/%.c
+	mkdir -p $(dir $@)
+	$(CC) $(BB_CFLAGS) -MMD -MP -c -o $@ $<
 
 # -------------------------
 # JA
@@ -98,14 +103,13 @@ ja: $(JA_EXE)
 $(JA_EXE): $(JA_OBJS) | $(BUILD)
 	$(CC) -o $@ $^ $(SDL_LIBS) $(MODPLUG_LIBS)
 
-$(JA_BUILD):
-	mkdir -p $@
+$(JA_BUILD)/%.o: %.c
+	mkdir -p $(dir $@)
+	$(CC) $(JA_CFLAGS) -MMD -MP -c -o $@ $<
 
-$(JA_BUILD)/%.o: ja/%.c | $(JA_BUILD)
-	$(CC) $(JA_CFLAGS) -c -o $@ $<
-
-$(JA_BUILD)/%.o: %.c | $(JA_BUILD)
-	$(CC) $(JA_CFLAGS) -c -o $@ $<
+$(JA_BUILD)/%.o: ja/%.c
+	mkdir -p $(dir $@)
+	$(CC) $(JA_CFLAGS) -MMD -MP -c -o $@ $<
 
 # -------------------------
 # P2
@@ -116,14 +120,13 @@ p2: $(P2_EXE)
 $(P2_EXE): $(P2_OBJS) | $(BUILD)
 	$(CC) -o $@ $^ $(SDL_LIBS) $(MODPLUG_LIBS)
 
-$(P2_BUILD):
-	mkdir -p $@
+$(P2_BUILD)/%.o: %.c
+	mkdir -p $(dir $@)
+	$(CC) $(P2_CFLAGS) -MMD -MP -c -o $@ $<
 
-$(P2_BUILD)/%.o: p2/%.c | $(P2_BUILD)
-	$(CC) $(P2_CFLAGS) -c -o $@ $<
-
-$(P2_BUILD)/%.o: %.c | $(P2_BUILD)
-	$(CC) $(P2_CFLAGS) -c -o $@ $<
+$(P2_BUILD)/%.o: p2/%.c
+	mkdir -p $(dir $@)
+	$(CC) $(P2_CFLAGS) -MMD -MP -c -o $@ $<
 
 # -------------------------
 # CLEAN
@@ -136,5 +139,9 @@ clean:
 # OPTIONAL PACKAGING
 # -------------------------
 
-package: $(P2_EXE)
-	ldd $(P2_EXE) | grep ucrt64 | awk '{print $$3}' | xargs -I{} cp {} $(BUILD)/
+package: 
+ifeq ($(OS),Windows_NT)
+	for exe in $(BB_EXE) $(JA_EXE) $(P2_EXE); do \
+		ldd $$exe | grep ucrt64 | awk '{print $$3}'; \
+	done | sort -u | xargs -I{} cp {} $(BUILD)/
+endif
