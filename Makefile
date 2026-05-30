@@ -35,7 +35,7 @@ P2_BUILD := $(BUILD)/p2
 ifeq ($(OS),Windows_NT)
     EXE := .exe
 else
-    EXE :=
+    EXE := _app
 endif
 
 BB_EXE := $(BUILD)/bb$(EXE)
