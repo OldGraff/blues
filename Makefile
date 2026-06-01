@@ -47,7 +47,7 @@ P2_EXE := $(BUILD)/p2$(EXE)
 # -------------------------
 
 COMMON_CFLAGS := -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare \
-	-Wpedantic -MMD -I. -g $(SDL_CFLAGS)
+	-Wpedantic -MMD -I. -O2 $(SDL_CFLAGS)
 
 BB_CFLAGS := $(COMMON_CFLAGS) -DGAME_BB
 JA_CFLAGS := $(COMMON_CFLAGS) -DGAME_JA
@@ -84,7 +84,7 @@ all: bb ja p2 package clean
 bb: $(BB_EXE)
 
 $(BB_EXE): $(BB_OBJS) | $(BUILD)
-	$(CC) -o $@ $^ $(SDL_LIBS) $(MODPLUG_LIBS)
+	$(CC) -o $@ $^ -s $(SDL_LIBS) $(MODPLUG_LIBS)
 
 $(BB_BUILD)/%.o: %.c
 	mkdir -p $(dir $@)
@@ -101,7 +101,7 @@ $(BB_BUILD)/%.o: bb/%.c
 ja: $(JA_EXE)
 
 $(JA_EXE): $(JA_OBJS) | $(BUILD)
-	$(CC) -o $@ $^ $(SDL_LIBS) $(MODPLUG_LIBS)
+	$(CC) -o $@ $^ -s $(SDL_LIBS) $(MODPLUG_LIBS)
 
 $(JA_BUILD)/%.o: %.c
 	mkdir -p $(dir $@)
@@ -118,7 +118,7 @@ $(JA_BUILD)/%.o: ja/%.c
 p2: $(P2_EXE)
 
 $(P2_EXE): $(P2_OBJS) | $(BUILD)
-	$(CC) -o $@ $^ $(SDL_LIBS) $(MODPLUG_LIBS)
+	$(CC) -o $@ $^ -s $(SDL_LIBS) $(MODPLUG_LIBS)
 
 $(P2_BUILD)/%.o: %.c
 	mkdir -p $(dir $@)
