@@ -3,19 +3,24 @@ name: Makefile CI
 on:
   push:
     branches: [ "master" ]
+    tags:
+      - "v*"
   pull_request:
     branches: [ "master" ]
+
+permissions:
+  contents: write
 
 jobs:
   build:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            artifact: linux_x86_64
+          - os: ubuntu-24.04
+            artifact: linux-bb-bj-p2-x86-64
 
-          - os: windows-latest
-            artifact: win_x86_64
+          - os: windows-2022
+            artifact: win-bb-bj-p2-dll-x86-64
 
     runs-on: ${{ matrix.os }}
 
@@ -58,3 +63,20 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: build/
+
+release:
+  if: startsWith(github.ref, 'refs/tags/')
+  needs: build
+  runs-on: ubuntu-latest
+
+  steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: release-assets
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          release-assets/**/*
