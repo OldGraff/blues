@@ -18,6 +18,7 @@
 
 struct input_t {
 	uint8_t direction;
+	uint8_t down_pressed;
 	bool quit;
 	bool space;
 	bool jump;

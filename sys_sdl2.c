@@ -356,42 +356,6 @@ static void sdl2_shake_screen(int dx, int dy) {
 
 static void handle_keyevent(int keysym, bool keydown, struct input_t *input, bool *paused) {
 	switch (keysym) {
-	case SDLK_LEFT:
-		if (keydown) {
-			input->direction |= INPUT_DIRECTION_LEFT;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_LEFT;
-		}
-		break;
-	case SDLK_RIGHT:
-		if (keydown) {
-			input->direction |= INPUT_DIRECTION_RIGHT;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_RIGHT;
-		}
-		break;
-	case SDLK_UP:
-		if (keydown) {
-			input->direction |= INPUT_DIRECTION_UP;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_UP;
-		}
-		break;
-	case SDLK_DOWN:
-		if (keydown) {
-			input->direction |= INPUT_DIRECTION_DOWN;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_DOWN;
-		}
-		break;
-	case SDLK_RETURN:
-	case SDLK_SPACE:
-		input->space = keydown;
-		break;
-	case SDLK_LSHIFT:
-	case SDLK_RSHIFT:
-		input->jump = keydown;
-		break;
 	case SDLK_ESCAPE:
 		if (keydown) {
 			g_sys.input.quit = true;
@@ -414,131 +378,6 @@ static void handle_keyevent(int keysym, bool keydown, struct input_t *input, boo
 	}
 }
 
-static void handle_controlleraxis(int axis, int value, struct input_t *input) {
-	static const int THRESHOLD = 3200;
-	switch (axis) {
-	case SDL_CONTROLLER_AXIS_LEFTX:
-	case SDL_CONTROLLER_AXIS_RIGHTX:
-		if (value < -THRESHOLD) {
-			input->direction |= INPUT_DIRECTION_LEFT;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_LEFT;
-		}
-		if (value > THRESHOLD) {
-			input->direction |= INPUT_DIRECTION_RIGHT;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_RIGHT;
-		}
-		break;
-	case SDL_CONTROLLER_AXIS_LEFTY:
-	case SDL_CONTROLLER_AXIS_RIGHTY:
-		if (value < -THRESHOLD) {
-			input->direction |= INPUT_DIRECTION_UP;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_UP;
-		}
-		if (value > THRESHOLD) {
-			input->direction |= INPUT_DIRECTION_DOWN;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_DOWN;
-		}
-		break;
-	}
-}
-
-static void handle_controllerbutton(int button, bool pressed, struct input_t *input, bool *paused) {
-	switch (button) {
-	case SDL_CONTROLLER_BUTTON_A:
-		input->space = pressed;
-		break;
-	case SDL_CONTROLLER_BUTTON_B:
-		input->jump = pressed;
-		break;
-	case SDL_CONTROLLER_BUTTON_START:
-		if (!pressed) {
-			*paused = !*paused;
-		}
-		break;
-	case SDL_CONTROLLER_BUTTON_DPAD_UP:
-		if (pressed) {
-			input->direction |= INPUT_DIRECTION_UP;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_UP;
-		}
-		break;
-	case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-		if (pressed) {
-			input->direction |= INPUT_DIRECTION_DOWN;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_DOWN;
-		}
-		break;
-	case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-		if (pressed) {
-			input->direction |= INPUT_DIRECTION_LEFT;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_LEFT;
-		}
-		break;
-	case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-		if (pressed) {
-			input->direction |= INPUT_DIRECTION_RIGHT;
-		} else {
-			input->direction &= ~INPUT_DIRECTION_RIGHT;
-		}
-		break;
-	}
-}
-
-static void handle_joystickhatmotion(int value, struct input_t *input) {
-	input->direction = 0;
-	if (value & SDL_HAT_UP) {
-		input->direction |= INPUT_DIRECTION_UP;
-	}
-	if (value & SDL_HAT_DOWN) {
-		input->direction |= INPUT_DIRECTION_DOWN;
-	}
-	if (value & SDL_HAT_LEFT) {
-		input->direction |= INPUT_DIRECTION_LEFT;
-	}
-	if (value & SDL_HAT_RIGHT) {
-		input->direction |= INPUT_DIRECTION_RIGHT;
-	}
-}
-
-static void handle_joystickaxismotion(int axis, int value, struct input_t *input) {
-	static const int THRESHOLD = 3200;
-	switch (axis) {
-	case 0:
-		input->direction &= ~(INPUT_DIRECTION_RIGHT | INPUT_DIRECTION_LEFT);
-		if (value > THRESHOLD) {
-			input->direction |= INPUT_DIRECTION_RIGHT;
-		} else if (value < -THRESHOLD) {
-			input->direction |= INPUT_DIRECTION_LEFT;
-		}
-		break;
-	case 1:
-		input->direction &= ~(INPUT_DIRECTION_UP | INPUT_DIRECTION_DOWN);
-		if (value > THRESHOLD) {
-			input->direction |= INPUT_DIRECTION_DOWN;
-		} else if (value < -THRESHOLD) {
-			input->direction |= INPUT_DIRECTION_UP;
-		}
-		break;
-	}
-}
-
-static void handle_joystickbutton(int button, int pressed, struct input_t *input) {
-	switch (button) {
-	case 0:
-		input->space = pressed;
-		break;
-	case 1:
-		input->jump = pressed;
-		break;
-	}
-}
-
 static int handle_event(const SDL_Event *ev, bool *paused) {
 	switch (ev->type) {
 	case SDL_QUIT:
@@ -553,11 +392,36 @@ static int handle_event(const SDL_Event *ev, bool *paused) {
 		}
 		break;
 	case SDL_KEYUP:
-		handle_keyevent(ev->key.keysym.sym, 0, &g_sys.input, paused);
+		switch (ev->key.keysym.scancode) {
+		case SDL_SCANCODE_LEFT:
+		case SDL_SCANCODE_RIGHT:
+		case SDL_SCANCODE_UP:
+		case SDL_SCANCODE_DOWN:
+			/* movement handled by SDL_GetKeyboardState() */
+			break;
+
+		default:
+			handle_keyevent(ev->key.keysym.sym, 0, &g_sys.input, paused);
+			break;
+		}
 		break;
-	case SDL_KEYDOWN:
-		handle_keyevent(ev->key.keysym.sym, 1, &g_sys.input, paused);
-		break;
+		case SDL_KEYDOWN:
+			if (!ev->key.repeat) {
+				switch (ev->key.keysym.scancode) {
+
+				case SDL_SCANCODE_LEFT:
+				case SDL_SCANCODE_RIGHT:
+				case SDL_SCANCODE_UP:
+				case SDL_SCANCODE_DOWN:
+					/* movement handled by SDL_GetKeyboardState() */
+					break;
+
+				default:
+					handle_keyevent(ev->key.keysym.sym, 1, &g_sys.input, paused);
+					break;
+				}
+			}
+			break;
 	case SDL_CONTROLLERDEVICEADDED:
 		if (!_controller) {
 			_controller = SDL_GameControllerOpen(ev->cdevice.which);
@@ -573,45 +437,124 @@ static int handle_event(const SDL_Event *ev, bool *paused) {
 			_controller = 0;
 		}
 		break;
-	case SDL_CONTROLLERBUTTONUP:
-		if (_controller) {
-			handle_controllerbutton(ev->cbutton.button, 0, &g_sys.input, paused);
-		}
-		break;
-	case SDL_CONTROLLERBUTTONDOWN:
-		if (_controller) {
-			handle_controllerbutton(ev->cbutton.button, 1, &g_sys.input, paused);
-		}
-		break;
-	case SDL_CONTROLLERAXISMOTION:
-		if (_controller) {
-			handle_controlleraxis(ev->caxis.axis, ev->caxis.value, &g_sys.input);
-		}
-		break;
-	case SDL_JOYHATMOTION:
-		if (_joystick) {
-			handle_joystickhatmotion(ev->jhat.value, &g_sys.input);
-		}
-		break;
-	case SDL_JOYAXISMOTION:
-		if (_joystick) {
-			handle_joystickaxismotion(ev->jaxis.axis, ev->jaxis.value, &g_sys.input);
-		}
-		break;
-	case SDL_JOYBUTTONUP:
-		if (_joystick) {
-			handle_joystickbutton(ev->jbutton.button, 0, &g_sys.input);
-		}
-		break;
-	case SDL_JOYBUTTONDOWN:
-		if (_joystick) {
-			handle_joystickbutton(ev->jbutton.button, 1, &g_sys.input);
-		}
-		break;
 	default:
 		return -1;
 	}
 	return 0;
+}
+
+static void update_keyboard_input(void) {
+	SDL_PumpEvents();
+
+	const Uint8 *state = SDL_GetKeyboardState(NULL);
+
+	g_sys.input.direction = 0;
+
+	if (state[SDL_SCANCODE_LEFT] || state[SDL_SCANCODE_A]) {
+		g_sys.input.direction |= INPUT_DIRECTION_LEFT;
+	}
+	if (state[SDL_SCANCODE_RIGHT] || state[SDL_SCANCODE_D]) {
+		g_sys.input.direction |= INPUT_DIRECTION_RIGHT;
+	}
+	if (state[SDL_SCANCODE_UP] || state[SDL_SCANCODE_W]) {
+		g_sys.input.direction |= INPUT_DIRECTION_UP;
+	}
+	if (state[SDL_SCANCODE_DOWN] || state[SDL_SCANCODE_S]) {
+		g_sys.input.direction |= INPUT_DIRECTION_DOWN;
+	}
+
+	g_sys.input.space =
+		state[SDL_SCANCODE_SPACE] ||
+		state[SDL_SCANCODE_RETURN];
+
+	g_sys.input.jump =
+		state[SDL_SCANCODE_LSHIFT] ||
+		state[SDL_SCANCODE_RSHIFT];
+}
+
+static void update_controller_input(bool *paused) {
+	if (!_controller) {
+		return;
+	}
+
+	if (SDL_GameControllerGetButton(
+		_controller,
+		SDL_CONTROLLER_BUTTON_DPAD_LEFT)) {
+		g_sys.input.direction |= INPUT_DIRECTION_LEFT;
+	}
+
+	if (SDL_GameControllerGetButton(
+		_controller,
+		SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) {
+		g_sys.input.direction |= INPUT_DIRECTION_RIGHT;
+	}
+
+	if (SDL_GameControllerGetButton(
+		_controller,
+		SDL_CONTROLLER_BUTTON_DPAD_UP)) {
+		g_sys.input.direction |= INPUT_DIRECTION_UP;
+	}
+
+	if (SDL_GameControllerGetButton(
+		_controller,
+		SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
+		g_sys.input.direction |= INPUT_DIRECTION_DOWN;
+	}
+
+	const int lx = SDL_GameControllerGetAxis(
+		_controller,
+		SDL_CONTROLLER_AXIS_LEFTX);
+
+	const int ly = SDL_GameControllerGetAxis(
+		_controller,
+		SDL_CONTROLLER_AXIS_LEFTY);
+
+	const int THRESHOLD = 6400;
+
+	if (lx < -THRESHOLD) {
+		g_sys.input.direction |= INPUT_DIRECTION_LEFT;
+	}
+	if (lx > THRESHOLD) {
+		g_sys.input.direction |= INPUT_DIRECTION_RIGHT;
+	}
+	if (ly < -THRESHOLD) {
+		g_sys.input.direction |= INPUT_DIRECTION_UP;
+	}
+	if (ly > THRESHOLD) {
+		g_sys.input.direction |= INPUT_DIRECTION_DOWN;
+	}
+
+	g_sys.input.space |= SDL_GameControllerGetButton(
+		_controller,
+		SDL_CONTROLLER_BUTTON_A);
+
+	g_sys.input.jump |= SDL_GameControllerGetButton(
+		_controller,
+		SDL_CONTROLLER_BUTTON_B);
+
+	/* START button edge detection */
+	static bool prev_start = false;
+
+	const bool start = SDL_GameControllerGetButton(
+		_controller,
+		SDL_CONTROLLER_BUTTON_START);
+
+	if (start && !prev_start) {
+		*paused = !*paused;
+		SDL_PauseAudio(*paused);
+	}
+
+	prev_start = start;
+}
+
+static void edge_triggered_down() {
+		static uint8_t prev_down = 0;
+
+		uint8_t down_now = (g_sys.input.direction & INPUT_DIRECTION_DOWN) ? 1 : 0;
+
+		g_sys.input.down_pressed = down_now && !prev_down;
+
+		prev_down = down_now;
 }
 
 static void sdl2_process_events() {
@@ -628,10 +571,15 @@ static void sdl2_process_events() {
 				SDL_PauseAudio(paused);
 			}
 		}
+
+		update_keyboard_input();
+		update_controller_input(&paused);
+		edge_triggered_down();
+
 		if (!paused) {
 			break;
 		}
-		SDL_Delay(100);
+		SDL_Delay(10);
 	}
 }
 
