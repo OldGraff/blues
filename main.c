@@ -26,6 +26,7 @@ static const char *USAGE =
 	"  --cga             Enable CGA colors\n"
 	"  --dosscroll       Enable DOS style screen scrolling\n"
 	"  --hybrid          Enable fuchsia color as in Hybrid crack\n"
+	"  --jumpkey         Change jump to separate key SHIFT or B on controller\n"
 ;
 
 #if defined(GAME_BB)
@@ -98,6 +99,7 @@ int main(int argc, char *argv[]) {
 			{ "cga",        no_argument,       0, 10 },
 			{ "dosscroll",  no_argument,       0, 11 },
 			{ "hybrid",     no_argument,       0, 12 },
+			{ "jumpkey",    no_argument,       0, 13 },
 			{ 0, 0, 0, 0 },
 		};
 		int index;
@@ -152,6 +154,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 12:
 			g_options.hybrid_color = true;
+			break;
+		case 13:
+			g_options.jump_button = true;
 			break;
 		default:
 			fprintf(stdout, USAGE, argv[0]);
