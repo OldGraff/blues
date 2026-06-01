@@ -33,6 +33,7 @@ static int _shake_dx, _shake_dy;
 static SDL_Window *_window;
 static SDL_Renderer *_renderer;
 static SDL_Texture *_texture;
+static SDL_Texture *_framebuffer; // new framebuffer for render game before aspect correction
 static SDL_PixelFormat *_fmt;
 static SDL_Palette *_palette;
 static uint32_t _screen_palette[256];
@@ -86,6 +87,10 @@ static void sdl2_fini() {
 		SDL_DestroyTexture(_texture);
 		_texture = 0;
 	}
+	if (_framebuffer) {
+		SDL_DestroyTexture(_framebuffer);
+		_framebuffer = 0;
+	}
 	if (_renderer) {
 		SDL_DestroyRenderer(_renderer);
 		_renderer = 0;
@@ -118,11 +123,11 @@ static void sdl2_set_screen_size(int w, int h, const char *caption, int scale, c
 		print_warning("Unhandled filter '%s'", filter);
 	}
 	const int window_w = w * scale;
-	const int window_h = h * scale;
+	const int window_h = h * scale * 1.2f; // DOS game window aspect correction
 	const int flags = fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_RESIZABLE;
 	_window = SDL_CreateWindow(caption, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_w, window_h, flags);
 	_renderer = SDL_CreateRenderer(_window, -1, 0);
-	SDL_RenderSetLogicalSize(_renderer, w, h);
+	// SDL_RenderSetLogicalSize(_renderer, w, h); // It fights against aspect correction
 	print_debug(DBG_SYSTEM, "set_screen_size %d,%d", _screen_w, _screen_h);
 	_screen_buffer = (uint32_t *)calloc(_screen_w * _screen_h, sizeof(uint32_t));
 	if (!_screen_buffer) {
@@ -135,6 +140,9 @@ static void sdl2_set_screen_size(int w, int h, const char *caption, int scale, c
 	_sprites_cliprect.y = 0;
 	_sprites_cliprect.w = w;
 	_sprites_cliprect.h = h;
+
+	/* final game frame before aspect correction */
+	_framebuffer = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_TARGET, _screen_w, _screen_h);
 }
 
 static uint32_t convert_amiga_color(uint16_t color) {
@@ -316,7 +324,7 @@ static void sdl2_copy_bitmap(const uint8_t *p, int w, int h) {
 	SDL_UpdateTexture(_texture, 0, _screen_buffer, _screen_w * sizeof(uint32_t));
 }
 
-static void sdl2_update_screen() {
+static void sdl2_update_game_screen() {
 	SDL_Rect r;
 	r.x = _shake_dx;
 	r.y = _shake_dy;
@@ -345,13 +353,40 @@ static void sdl2_update_screen() {
 		}
 	}
 	SDL_RenderSetClipRect(_renderer, 0);
-
-	SDL_RenderPresent(_renderer);
 }
 
 static void sdl2_shake_screen(int dx, int dy) {
 	_shake_dx = dx;
 	_shake_dy = dy;
+}
+
+static void sdl2_present_framebuffer() {
+	int ww;
+	int wh;
+
+	SDL_GetWindowSize(_window, &ww, &wh);
+	SDL_RenderClear(_renderer);
+
+	SDL_Rect dst;
+
+	dst.w = ww; // fit in window width
+	dst.h = ww * 3 / 4; // get 4:3 height from the width.
+	dst.x = 0;
+	dst.y = (wh - dst.h) / 2; // center vertically
+
+	SDL_RenderCopy(_renderer, _framebuffer, NULL, &dst);
+
+	SDL_RenderPresent(_renderer);
+}
+
+static void sdl2_update_screen() {
+	SDL_SetRenderTarget(_renderer, _framebuffer); // First pass: render game into offscreen framebuffer
+
+	sdl2_update_game_screen();
+
+	SDL_SetRenderTarget(_renderer, NULL); // Second pass: render framebuffer to window with DOS aspect correction (320x200 -> 320x240)
+
+	sdl2_present_framebuffer();
 }
 
 static void handle_keyevent(int keysym, bool keydown, struct input_t *input, bool *paused) {
